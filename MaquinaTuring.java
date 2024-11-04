@@ -150,7 +150,6 @@ public class MaquinaTuring {
                 transiciones.add(new Transicion(estadoInicialTransicion, simboloLeido, simboloEscrito, movimiento, nuevoEstado));
             }
         }
-        scanner.close();
     }
 
     public void mostrarTablaTransiciones() {
@@ -187,7 +186,6 @@ public class MaquinaTuring {
                 System.out.println("La cadena no es aceptada ni decidible.");
             }
         }
-        scanner.close();
     }
 
     private boolean esAceptada(String cadena) {
