@@ -1,3 +1,9 @@
+import java.io.FileReader;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -33,25 +39,22 @@ public class MaquinaTuring {
     }
 
     private boolean validarEstado(String estado) {
-        // Valida que el estado no esté vacío y tenga letras y números, no solo números
         return Pattern.matches("^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]+$", estado) && !estado.isEmpty();
     }
 
     private boolean validarEstadoSinSoloNumeros(String estado) {
-        // Valida que el estado no sea solo números y no esté vacío
         return !estado.isEmpty() && !estado.matches("\\d+");
     }
 
     private boolean validarFormatoTransicion(String formato) {
-        // Valida que el formato de transición sea a:b,c donde a y b son símbolos, y c es L, R o S
         return Pattern.matches("^[^\\s,:;]{1}:[^\\s,:;]{1},[LRS]$", formato);
     }
 
     public void solicitarDatos() {
         Scanner scanner = new Scanner(System.in);
 
-        // Solicitar Estado Inicial
         while (true) {
+            System.out.println("\n_____________________________");
             System.out.print("Estado inicial: ");
             estadoInicial = scanner.nextLine().trim();
             if (validarEstado(estadoInicial) && validarEstadoSinSoloNumeros(estadoInicial)) {
@@ -61,7 +64,6 @@ public class MaquinaTuring {
             }
         }
 
-        // Solicitar Estados Finales
         int numEstadosFinales;
         while (true) {
             System.out.print("¿Cuántos estados finales hay? ");
@@ -91,7 +93,6 @@ public class MaquinaTuring {
             }
         }
 
-        // Solicitar Transiciones
         int numTransiciones;
         while (true) {
             System.out.print("Número de transiciones que tendrá la máquina de Turing: ");
@@ -116,7 +117,6 @@ public class MaquinaTuring {
             String formato;
             boolean datosValidos = false;
 
-            // Solicitar datos hasta que todos sean válidos
             while (!datosValidos) {
                 System.out.print("Estado inicial: ");
                 estadoInicialTransicion = scanner.nextLine().trim();
@@ -142,7 +142,6 @@ public class MaquinaTuring {
                     continue;
                 }
 
-                // Si todos los datos son válidos, se agregan a la lista de transiciones
                 datosValidos = true;
                 char simboloLeido = formato.charAt(0);
                 char simboloEscrito = formato.charAt(2);
@@ -152,6 +151,50 @@ public class MaquinaTuring {
         }
     }
 
+    // Método para leer desde el archivo
+    public void leerDesdeArchivo(String nombreArchivo) {
+        try (Scanner scanner = new Scanner(new File(nombreArchivo))) {
+            String linea = scanner.nextLine();
+
+            // Separar la configuración inicial y las transiciones
+            String[] partes = linea.split(";");
+            String[] configuracionInicial = partes[0].split(",");
+
+            // Leer el estado inicial
+            estadoInicial = configuracionInicial[0];
+
+            // Leer los estados finales
+            int numEstadosFinales = Integer.parseInt(configuracionInicial[1]);
+            for (int i = 0; i < numEstadosFinales; i++) {
+                estadosFinales.add(configuracionInicial[2 + i]);
+            }
+
+            // Leer el número de transiciones
+            int numTransiciones = Integer.parseInt(configuracionInicial[2 + numEstadosFinales]);
+
+            // Leer cada transición
+            for (int i = 1; i <= numTransiciones; i++) {
+                String[] datosTransicion = partes[i].split(",");
+                
+                String estadoInicialTransicion = datosTransicion[0];
+                String[] formato = datosTransicion[1].split(":");
+                char simboloLeido = formato[0].charAt(0);
+                char simboloEscrito = formato[1].charAt(0);
+                char movimiento = datosTransicion[2].charAt(0);
+                String nuevoEstado = datosTransicion[3];
+
+                transiciones.add(new Transicion(estadoInicialTransicion, simboloLeido, simboloEscrito, movimiento, nuevoEstado));
+            }
+
+            System.out.println("Datos cargados correctamente desde el archivo.");
+        } catch (FileNotFoundException e) {
+            System.err.println("Error: No se encontró el archivo " + nombreArchivo);
+        } catch (Exception e) {
+            System.err.println("Error al leer los datos del archivo: " + e.getMessage());
+        }
+    }
+
+    
     public void mostrarTablaTransiciones() {
         System.out.println("\n______________________________________________________________________________________________________");
         System.out.println("Tabla de Transiciones:");
@@ -166,17 +209,23 @@ public class MaquinaTuring {
         System.out.println("+---------------+-----------------+-----------------+-----------------+---------------+---------------+");
     }
 
+    // Método para evaluar cadenas
     public void evaluarCadenas() {
         Scanner scanner = new Scanner(System.in);
         while (true) {
+            System.out.println("\n_______________________________________________________________________________________________");
             System.out.print("Ingrese la cadena a evaluar (use % para representar un espacio en blanco o 'salir' para terminar): ");
             String cadena = scanner.nextLine();
 
             if (cadena.equalsIgnoreCase("salir")) {
+                System.out.println("________________________________");
                 System.out.println("Fin de la evaluación de cadenas.");
                 System.out.println("Gracias por utilizar el programa");
                 break;
             }
+
+            // Reemplazar '%' por espacio en blanco
+            cadena = cadena.replace("%", " ");
 
             if (esAceptada(cadena)) {
                 System.out.println("La cadena es aceptada por la máquina de Turing.");
@@ -189,77 +238,131 @@ public class MaquinaTuring {
     }
 
     private boolean esAceptada(String cadena) {
-        // Inicia en el estado inicial y procesa la cadena
         String estadoActual = estadoInicial;
         int posicion = 0;
 
-        while (posicion < cadena.length()) {
+        while (posicion >= 0 && posicion < cadena.length()) {
             char simboloLeido = cadena.charAt(posicion);
             boolean transicionEncontrada = false;
 
-            // Busca una transición correspondiente al estado actual y símbolo leído
             for (Transicion t : transiciones) {
                 if (t.estadoInicial.equals(estadoActual) && t.simboloLeido == simboloLeido) {
-                    // Actualiza el estado y la cadena según la transición
-                    cadena = cadena.substring(0, posicion) + t.simboloEscrito + cadena.substring(posicion + 1);
+                    // Modificar la cadena según el símbolo escrito
+                    StringBuilder nuevaCadena = new StringBuilder(cadena);
+                    nuevaCadena.setCharAt(posicion, t.simboloEscrito);
+                    cadena = nuevaCadena.toString();
+
+                    // Actualizar estado y posición
                     estadoActual = t.nuevoEstado;
-                    posicion += (t.movimiento == 'R') ? 1 : (t.movimiento == 'L') ? -1 : 0; // Mueve la cabeza de lectura/escritura
+                    posicion += (t.movimiento == 'R') ? 1 : (t.movimiento == 'L') ? -1 : 0;
+
                     transicionEncontrada = true;
                     break;
                 }
             }
 
-            // Si no se encontró una transición, la cadena no es aceptada
+            // Si no se encuentra una transición válida, salimos
             if (!transicionEncontrada) {
                 return false;
             }
 
-            // Verifica si el estado actual es uno de los estados finales
+            // Verificar si el estado actual es final
             if (estadosFinales.contains(estadoActual)) {
-                return true; // La cadena es aceptada
+                return true;
             }
         }
 
-        // Si la cadena se ha procesado completamente pero no está en un estado final
         return estadosFinales.contains(estadoActual);
     }
 
     private boolean esDecidible(String cadena) {
-        // Un lenguaje es decidible si se puede construir una máquina de Turing que siempre alcanza el estado de parada
-        // En este caso, consideramos que si el estado final se alcanza al procesar la cadena, es decidible
         String estadoActual = estadoInicial;
         int posicion = 0;
 
-        while (posicion < cadena.length()) {
+        while (posicion >= 0 && posicion < cadena.length()) {
             char simboloLeido = cadena.charAt(posicion);
             boolean transicionEncontrada = false;
 
-            // Busca una transición correspondiente al estado actual y símbolo leído
             for (Transicion t : transiciones) {
                 if (t.estadoInicial.equals(estadoActual) && t.simboloLeido == simboloLeido) {
-                    // Actualiza el estado y la cadena según la transición
-                    cadena = cadena.substring(0, posicion) + t.simboloEscrito + cadena.substring(posicion + 1);
+                    StringBuilder nuevaCadena = new StringBuilder(cadena);
+                    nuevaCadena.setCharAt(posicion, t.simboloEscrito);
+                    cadena = nuevaCadena.toString();
+
                     estadoActual = t.nuevoEstado;
-                    posicion += (t.movimiento == 'R') ? 1 : (t.movimiento == 'L') ? -1 : 0; // Mueve la cabeza de lectura/escritura
+                    posicion += (t.movimiento == 'R') ? 1 : (t.movimiento == 'L') ? -1 : 0;
+
                     transicionEncontrada = true;
                     break;
                 }
             }
 
-            // Si no se encontró una transición, se detiene el proceso
             if (!transicionEncontrada) {
                 break;
             }
         }
 
-        // Verifica si el estado final se alcanzó o si se detuvo en un estado no final
-        return estadosFinales.contains(estadoActual) || (posicion >= cadena.length());
+        return estadosFinales.contains(estadoActual);
+    }
+
+    // Generación del archivo DOT y del PNG
+    public void generarGrafoDot() {
+        String nombreArchivoDot = "grafo.turing.dot";
+        try (FileWriter writer = new FileWriter(nombreArchivoDot)) {
+            writer.write("digraph G {\n");
+            writer.write("  rankdir=LR;\n");
+            writer.write("  node [shape = circle];\n");
+
+            for (String estadoFinal : estadosFinales) {
+                writer.write("  \"" + estadoFinal + "\" [shape=doublecircle];\n");
+            }
+
+            for (Transicion transicion : transiciones) {
+                writer.write("  \"" + transicion.estadoInicial + "\" -> \"" + transicion.nuevoEstado + "\" ");
+                writer.write("[label=\"" + transicion.simboloLeido + ":" + transicion.simboloEscrito + "," + transicion.movimiento + "\"];\n");
+            }
+
+            writer.write("}\n");
+            System.out.println("Archivo grafo.turing.dot generado correctamente.");
+        } catch (IOException e) {
+            System.err.println("Error al generar el archivo DOT: " + e.getMessage());
+            return;
+        }
+
+        try {
+            ProcessBuilder processBuilder = new ProcessBuilder("dot", "-Tpng", nombreArchivoDot, "-o", "grafo.png");
+            Process process = processBuilder.start();
+            process.waitFor();
+            System.out.println("Imagen grafo.png generada correctamente.");
+            System.out.println("________________________________________");
+        } catch (IOException | InterruptedException e) {
+            System.err.println("Error al generar la imagen PNG: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) {
         MaquinaTuring maquina = new MaquinaTuring();
-        maquina.solicitarDatos();
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("MENU DE INICIO\n1. Consola\n2. Leer el archivo");
+        System.out.print("Seleccione una opción: ");
+        int opcion = scanner.nextInt();
+        scanner.nextLine();
+
+        if (opcion == 1) {
+            maquina.solicitarDatos();
+        } else if (opcion == 2) {
+            System.out.print("Ingrese el nombre del archivo .txt: ");
+            String nombreArchivo = scanner.nextLine().trim();
+            maquina.leerDesdeArchivo(nombreArchivo);
+        } else {
+            System.out.println("Opción no válida.");
+            return;
+        }
+
         maquina.mostrarTablaTransiciones();
         maquina.evaluarCadenas();
+        maquina.generarGrafoDot();
+        
     }
 }

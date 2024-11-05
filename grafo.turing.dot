@@ -1,0 +1,7 @@
+digraph G {
+  rankdir=LR;
+  node [shape = circle];
+  "q1" [shape=doublecircle];
+  "q0" -> "q0" [label="0:0,R"];
+  "q0" -> "q1" [label="1:1,R"];
+}
