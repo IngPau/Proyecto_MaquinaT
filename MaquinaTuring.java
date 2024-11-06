@@ -213,19 +213,16 @@ public class MaquinaTuring {
     public void evaluarCadenas() {
         Scanner scanner = new Scanner(System.in);
         while (true) {
-            System.out.println("\n_______________________________________________________________________________________________");
+            System.out.println("\n__________________________________________________________________________________________________");
             System.out.print("Ingrese la cadena a evaluar (use % para representar un espacio en blanco o 'salir' para terminar): ");
             String cadena = scanner.nextLine();
 
             if (cadena.equalsIgnoreCase("salir")) {
-                System.out.println("________________________________");
+                System.out.println("\n______________________________");
                 System.out.println("Fin de la evaluación de cadenas.");
                 System.out.println("Gracias por utilizar el programa");
                 break;
             }
-
-            // Reemplazar '%' por espacio en blanco
-            cadena = cadena.replace("%", " ");
 
             if (esAceptada(cadena)) {
                 System.out.println("La cadena es aceptada por la máquina de Turing.");
@@ -241,32 +238,24 @@ public class MaquinaTuring {
         String estadoActual = estadoInicial;
         int posicion = 0;
 
-        while (posicion >= 0 && posicion < cadena.length()) {
+        while (posicion < cadena.length()) {
             char simboloLeido = cadena.charAt(posicion);
             boolean transicionEncontrada = false;
 
             for (Transicion t : transiciones) {
                 if (t.estadoInicial.equals(estadoActual) && t.simboloLeido == simboloLeido) {
-                    // Modificar la cadena según el símbolo escrito
-                    StringBuilder nuevaCadena = new StringBuilder(cadena);
-                    nuevaCadena.setCharAt(posicion, t.simboloEscrito);
-                    cadena = nuevaCadena.toString();
-
-                    // Actualizar estado y posición
+                    cadena = cadena.substring(0, posicion) + t.simboloEscrito + cadena.substring(posicion + 1);
                     estadoActual = t.nuevoEstado;
                     posicion += (t.movimiento == 'R') ? 1 : (t.movimiento == 'L') ? -1 : 0;
-
                     transicionEncontrada = true;
                     break;
                 }
             }
 
-            // Si no se encuentra una transición válida, salimos
             if (!transicionEncontrada) {
                 return false;
             }
 
-            // Verificar si el estado actual es final
             if (estadosFinales.contains(estadoActual)) {
                 return true;
             }
@@ -279,19 +268,15 @@ public class MaquinaTuring {
         String estadoActual = estadoInicial;
         int posicion = 0;
 
-        while (posicion >= 0 && posicion < cadena.length()) {
+        while (posicion < cadena.length()) {
             char simboloLeido = cadena.charAt(posicion);
             boolean transicionEncontrada = false;
 
             for (Transicion t : transiciones) {
                 if (t.estadoInicial.equals(estadoActual) && t.simboloLeido == simboloLeido) {
-                    StringBuilder nuevaCadena = new StringBuilder(cadena);
-                    nuevaCadena.setCharAt(posicion, t.simboloEscrito);
-                    cadena = nuevaCadena.toString();
-
+                    cadena = cadena.substring(0, posicion) + t.simboloEscrito + cadena.substring(posicion + 1);
                     estadoActual = t.nuevoEstado;
                     posicion += (t.movimiento == 'R') ? 1 : (t.movimiento == 'L') ? -1 : 0;
-
                     transicionEncontrada = true;
                     break;
                 }
@@ -302,8 +287,9 @@ public class MaquinaTuring {
             }
         }
 
-        return estadosFinales.contains(estadoActual);
+        return estadosFinales.contains(estadoActual) || (posicion >= cadena.length());
     }
+
 
     // Generación del archivo DOT y del PNG
     public void generarGrafoDot() {
@@ -352,7 +338,7 @@ public class MaquinaTuring {
         if (opcion == 1) {
             maquina.solicitarDatos();
         } else if (opcion == 2) {
-            System.out.print("Ingrese el nombre del archivo .txt: ");
+            System.out.print("Ingrese el nombre del archivo: ");
             String nombreArchivo = scanner.nextLine().trim();
             maquina.leerDesdeArchivo(nombreArchivo);
         } else {
@@ -366,3 +352,4 @@ public class MaquinaTuring {
         
     }
 }
+
